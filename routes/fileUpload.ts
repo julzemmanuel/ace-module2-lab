@@ -73,6 +73,14 @@ async function handleXmlUpload ({ file }: Request, res: Response, next: NextFunc
     if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) { // XXE attacks in Docker/Heroku containers regularly cause "segfault" crashes
       const data = file.buffer.toString()
       try {
+        const cleanData = data.replace(/\0/g, '')
+        if (
+          /<\s*!\s*(?:ENTITY|DOCTYPE)[^>]*\b(?:SYSTEM|PUBLIC)\b/i.test(cleanData) ||
+          (/<\s*!\s*(?:ENTITY|DOCTYPE)/i.test(cleanData) && /\b(?:SYSTEM|PUBLIC)\b\s*["']/i.test(cleanData)) ||
+          /<\s*xi:include/i.test(cleanData)
+        ) {
+          throw new Error('XML external entities are not allowed')
+        }
         const xmlString = await parseXmlString(data)
         challengeUtils.solveIf(challenges.xxeFileDisclosureChallenge, () => { return (utils.matchesEtcPasswdFile(xmlString) || utils.matchesSystemIniFile(xmlString)) })
         res.status(410)
