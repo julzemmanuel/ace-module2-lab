@@ -55,35 +55,7 @@ export function getUserProfile () {
       username = username.replace(/[\r\n\u2028\u2029]/g, '')
     }
 
-    if (username?.match(/#{(.*)}/) !== null && utils.isChallengeEnabled(challenges.usernameXssChallenge)) {
-      req.app.locals.abused_ssti_bug = true
-      const code = username?.substring(2, username.length - 1)
-      try {
-        if (!code) {
-          throw new Error('Username is null')
-        }
-        const singleQuoteRegex = /^'(?:[^'\\]|\\.)*'$/
-        const doubleQuoteRegex = /^"(?:[^"\\]|\\.)*"$/
-        const backtickRegex = /^`(?:[^`\\$]|\\.|\$(?!{))*`$/
-        const numericRegex = /^-?\d+(?:\.\d+)?$/
-        const booleanRegex = /^(?:true|false|null|undefined)$/
-
-        const isSafe = singleQuoteRegex.test(code) ||
-          doubleQuoteRegex.test(code) ||
-          backtickRegex.test(code) ||
-          numericRegex.test(code) ||
-          booleanRegex.test(code)
-
-        if (!isSafe) {
-          throw new Error('Unsafe code execution blocked')
-        }
-        username = String(eval(code)) // eslint-disable-line no-eval
-      } catch (err) {
-        username = '\\' + username.replace(/([#!])([{\[])/g, '\\$1$2')
-      }
-    } else {
-      username = '\\' + (username ? username.replace(/([#!])([{\[])/g, '\\$1$2') : '')
-    }
+    username = '\\' + (username ? username.replace(/([#!])([{\[])/g, '\\$1$2') : '')
 
     if (username) {
       username = username.replace(/[\r\n\u2028\u2029]/g, '')
